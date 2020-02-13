@@ -1,0 +1,78 @@
+---
+title: "Act3"
+author: "BHH"
+date: "February 12, 2020"
+output: html_document
+---
+
+---
+title: "Act_3"
+author: "BHH"
+date: "2/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+install.packages('devtools')
+devtools::install_github("bomeara/phybase")
+```
+
+```{r}
+library(rotl)
+library(ape)
+phy <- get_study_tree("ot_485", "tree1")
+plot(phy, cex=0.3)
+```
+
+this is a lot of taxa...124 tips. We can narrow this. however, im slightly confused as to why Ntip(phy) drops all but ten. This is the same as phy3.. the -10 seems somewhat counter intuitive. Why isnt it 114 tips after dropping?
+```{r}
+library(geiger)
+phy2 <- drop.random(phy, Ntip(phy) - 10)
+phy3<- drop.random(phy, 114)
+plot(phy2)
+plot(phy3)
+axisPhylo()
+```
+simulating genes to match the tree
+```{r}
+library(phybase)
+gene.tree <- phybase::sim.coaltree.phylo(phy2, pop.size=1e-12)
+plot(gene.tree)
+```
+We can plot the two trees together. This is cool
+```{r}
+library(phytools)
+plot(cophylo(phy2, gene.tree, cbind(sort(phy2$tip.label), sort(gene.tree$tip.label))))
+```
+
+Even though the species seem to line up and gene tree matches species tree, lack of coalescence can occur, thus causing incongruence
+```{r}
+species.tree <- rcoal(7)
+species.tree$edge.length <- species.tree$edge.length / (10*max(branching.times(species.tree)))
+gene.tree <- phybase::sim.coaltree.phylo(species.tree)
+plot(cophylo(species.tree, gene.tree, cbind(sort(species.tree$tip.label), sort(gene.tree$tip.label))))
+
+```
+lengthening tips to see if they agree
+```{r}
+tip.rows <- which(species.tree$edge[,2]<=Ntip(species.tree))
+species.tree2 <- species.tree
+species.tree2$edge.length[tip.rows] <- 100 + species.tree2$edge.length[tip.rows]
+gene.tree2 <- phybase::sim.coaltree.phylo(species.tree2)
+plot(cophylo(species.tree2, gene.tree2, cbind(sort(species.tree2$tip.label), sort(gene.tree2$tip.label))))
+```
+Manually changing branch lengths without resimulating
+```{r}
+species.tree2.clado <- compute.brlen(species.tree2)
+gene.tree2.clado <- compute.brlen(gene.tree2)
+plot(cophylo(species.tree2.clado, gene.tree2.clado, cbind(sort(species.tree2.clado$tip.label),
+sort(gene.tree2.clado$tip.label))))
+
+
+```
