@@ -1,0 +1,84 @@
+---
+title: "Act2"
+author: "BHH"
+date: "February 12, 2020"
+output: html_document
+---
+```{r}
+GetTreeFromOpenTree <- function(species) {
+    library(ape)
+    library(rotl)
+  spec.id <- tnrs_match_names(species)$ott_id # Now get Open Tree's current best estimate of the phylogeny for the group
+  spec.tree <- tol_subtree(ott_id=spec.id) # They call this the tree of life; we can get the subtree for just this group.
+  plot.phylo(spec.tree, type="fan", cex=0.2)
+  print(paste("The species tree has ", Ntip(spec.tree), " terminals and ",
+    Nnode(spec.tree), " internal nodes out of ",Ntip(spec.tree)-2,
+    " possible, which means it is ",
+    round(100*(Nnode(spec.tree)-1)/(Ntip(spec.tree)-3), 2),
+    "% resolved", sep=""))
+
+}
+
+GetTreeFromOpenTree("Etheostoma")
+```
+
+
+
+
+
+```{r}  
+etheo.studies <-studies_find_studies(property="ot:focalCladeOTTTaxonName",value="Etheostoma")
+etheo.study.ids <- unlist(etheo.studies$study_ids)
+```
+
+
+  # Let's get info on the first study
+```{r}
+print(etheo.studies[[1]])
+etheo.study1.metadata <- get_study_meta("ot_1930")
+   print(get_publication(etheo.study1.metadata))
+```
+
+
+```{r}
+etheo.studies.ids<-get_tree_ids(etheo.study1.metadata)
+etheo.studies.ids[[1]]
+etheo.study1.tree1 <- get_study_tree("ot_1930",etheo.studies.ids[[1]])
+etheo.study1.tree1
+plot.phylo(etheo.study1.tree1, cex = .2)
+
+```
+
+on your own....
+```{r}
+cath.accession<-c('KX096716.1','MH282906.1','MH282907.1','KY391886.1','KF031133.1','MH010580.1','KU556733.1','GO934854.1','JF923766.1','KF766531.1','KF766530.1','KY610282.1','MF577057.1','KU556732.1','KY982870.1','KJ820824.1','JQ836655.1', 'NM_004345.5')
+seqs<-read.GenBank(cath.accession, species.names = T)
+attr(seqs, "species")
+class(seqs)
+```
+keeping names to build phylogeny with
+```{r}
+seqs2<-seqs
+names(seqs2)<-attr(seqs,"species")
+```
+aligning and transforming
+```{r}
+library(DECIPHER)
+names(seqs)
+library(magrittr)
+acc.seq.dna<-seqs2%>% as.character%>% lapply(.,paste0,collapse="") %>% unlist %>% DNAStringSet
+AA<-AlignTranslation(acc.seq.dna, type= "AAStringSet", direction = "5' to 3'")
+BrowseSeqs(AA)
+DNA<-AlignSeqs(acc.seq.dna)
+BrowseSeqs(DNA)
+```
+building phylogeny based of DNA sequences. Note: addition of H. sapiens makes tree go a littly wonky
+
+```{r}
+library(phangorn)
+dist.DNA<-as.DNAbin(DNA)
+plot.seqs<-dist.ml(dist.DNA)
+plot.seqs=NJ(plot.seqs)
+quartz()
+plot.phylo(plot.seqs)
+```
